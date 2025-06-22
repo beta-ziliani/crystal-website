@@ -90,12 +90,42 @@ end
 
 Without looking much into the details, what this code does is _to replace_ the `lock` and `unlock` methods of `Crystal::SpinLock` with a version that adds a _memory fence_. `previous_def` is the call of the previous definition. The effect is that now every call to these methods will be replaced with the new definition.
 
-Again, similar to duck typing, if you come from a dynamic language this might not raise an eyebrow. But if you come from a static language, this _is_ surprising. After all, how are we replacing the _call_ of a method with a call to a new method? In Java, you certainly can't do this, and the only way to extend the functionality of a class is with a wrapper class, or inheriting from the class. But then, you're just creating _a new type_, and not replacing the existing calls, making this attempt mute to solve an issue in existing code.
+Again, similar to duck typing, if you come from a dynamic language this might not raise an eyebrow. But if you come from a static language, this _is_ surprising. After all, how are we replacing the _call_ of a method with a call to a new method? In Java you can't do this, and the only way to extend the functionality of a class is with a wrapper class, or inheriting from the class. But then, you're just creating _a new type_, and not replacing the existing calls, making this attempt mute to solve an issue in existing code.
 
-Note: Here we're talking about just the methods of the class, but in Crystal you can also add instance or class variables through monkey-patching.
+Note: Here we're talking about replacing the methods of the class, but in Crystal you can also add instance or class variables through monkey-patching.
 
 ## The bureaucracy is necessary for _most_ static languages
 
-When Java or C++ forces you to add an interface or to inherit a type in order to extend its functionality, they do it for a good reason: compilation in these languages is _modular_. Modular compilation means that, once a _unit of compilation_ (for instance, a class) is compiled, then it's _object code_ (the binary representation of the unit) is not modified until the code from the unit itself is modified, and the compiler run again.
+Languages like Java and C++ force you to add a ton of bureaucracy
+—that is, to be explicit about types— for a very good reason. Traditional compilers break down a program into _units of compilation_ (for instance, the classes of the program), and performs the compilation. This process is _modular_: each unit contains all the information required to compile it in isolation with the other units.
+
+But in order to achieve modular compilation, the compiler needs to be sure that local changes in one unit won't impact other units. By having interfaces and declared types in each function, the compiler makes sure that, as long as there is no change in the _public interface_ of the unit, then other units depending on it won't have to be recompiled.
+
+Let's cement this concept with an example in Java. We have classes `A` and `B`, the former depending on the latter:
+
+```java
+class A {
+    public static void main(String[] args) {
+        var b = new B();
+        System.out.println(b.hello("world"));
+    }
+}
+
+class B {
+    public String hello(String something) {
+        return "Hello " + something;
+    }
+}
+```
+
+Under the assumption that each class is a unit of compilation, the compiler will split this program in two: unit `A` and unit `B`. When compiling `B`, it will record that it has a public method, `hello`, that takes a `String` argument and returns a `String`. It uses this information when compiling `A`, since its `main` function creates an instance of `B` and calls that method.
+
+If tomorrow we decide to change the `main` method to call `b.hello` again, say, with another `String`, the compiler will only build the unit `A` again, re-using the same _object code_ (that is, the output of the compilation) of unit `B` that was already produced.
+
+So, in essence, modularity gives us a fast compilation process, at the expense of requiring precise information about the input and output types of each method and, moreover, forbidding the laxity provided by duck typing and monkey-patching.
+
+<!-- PUT GRAPH ABOUT COMPILATION -->
+
+## Crystal throws away modular compilation
 
 To understand why, simply consider our `adder` example. In Crystal, in order to know that the objects `x` and `y` have the `+` operator, it must know how `adder` is being called. 
