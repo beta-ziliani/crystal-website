@@ -26,16 +26,18 @@ def adder(x, y)
 end
 
 adder 1, 2 # => 3
-adder "hi", "world" # => hiworld
+adder "hello", " world" # => hello world
 ```
 
-It's uses duck typing:
+It's uses duck typing, whose name is taken from the following phrase:
 
 > If it walks like duck, and talks like a duck, it's a duck
 
-Applying the analogy, our code is valid because, _if it can be added, then it's added_. And since both numbers and strings can be operated with `+`, then they indeed are!
+Applying the analogy, our code is valid because, _if it can be added, then it's added_. And since both numbers and strings can be operated with `+`, then they are added.
 
-This might not be surprising if you come from a dynamic language. But if you come from a language like Java or C++, it certainly is. In such languages, you need to specify in some way that `x` and `y` can, in fact, be added. For instance, via an _Addable_ interface, or an _Adder_ base class. In Crystal you _can_ use similar concepts, but you are not forced to.
+The crucial difference with Ruby is that when we try to add two incompatible objects, then Crystal catches that at _compile time_, that is, before even running the program. For that reason, we say that Crystal is a _safe language_.
+
+This might not be surprising if you come from a dynamic language. But if you come from a language like Java or C++, other safe languages, it certainly is. In such languages, you need to specify in some way that `x` and `y` can, in fact, be added, be that via an _Addable_ interface, or an _Adder_ base class. In Crystal you _can_ use similar concepts, but you are not forced to.
 
 ### The cost of freedom, part one
 
@@ -43,7 +45,7 @@ Such freedom comes with some cost. For instance, in this example, the reporting 
 
 ![alt text](image-1.png)
 
-Now, look at where the compiler puts the blame: in the usage of the `+` operator. In Ruby, this code will fail at this exact same location _at runtime_. Instead, Crystal let us know before hand, so the program won't explode in our face. That's nice, but still, the error is located too deep in the code (here it's obvious, but imagine what would happen in a longer chain of calls). If we have to find a better place for the error to surface, it should be in the call of `adder` with two incompatible types.
+Observe at where the compiler puts the blame: in the usage of the `+` operator. In Ruby, this code will fail at this exact same location but _at runtime_. As mentioned previously, Crystal is safe and lets us know before hand, so the program won't explode in our face. That's nice, but still, the error is located too deep in the code (here it's obvious, but imagine what would happen in a longer chain of calls). If we have to find a better place for the error to surface, it should be in the call of `adder` with two incompatible types.
 
 One option is to restrict the types of `x` and `y` to be the same. This restricts our function, and forbids adding a `Char` to a `String` (a valid operation), but at the benefit of having better error reporting. In order to specify that `adder` needs both arguments to be of the same type, we specify that it's _parametric_ in a type `T` that should be shared for the two arguments. Now the error is better:
 
@@ -51,6 +53,7 @@ One option is to restrict the types of `x` and `y` to be the same. This restrict
 
 As mentioned before, we can decide how much bureaucracy we want to add. We can, for instance, go one step further and create an interface of "things that can be added". This won't help with the problem of mixing valid types (like `String` and `Char`), but will improve the error if we call `adder` with anything that is not _addable_.
 
+<!-- TODO: missing transition -->
 Let's turn our attention to another interesting feature of Crystal.
 
 ### Monkey patching
@@ -75,7 +78,7 @@ Without looking much into the details, first note that this code is expected to 
 
 Again, similar to duck typing, if you come from a dynamic language this might not raise an eyebrow. But if you come from a static language, this _is_ surprising. After all, how are we replacing the _call_ of a method with a call to a new method? In Java or C++ you simply can't do this, and the only way to extend the functionality of a class is with a wrapper class, or inheriting from the class. But then, you're just creating _a new type_, and not replacing the existing calls, making this attempt mute to solve an issue in existing code.
 
-Side note: Here we're talking about replacing the methods of the class, but in Crystal you can also add instance or class variables through monkey-patching.
+Side note: Here we're talking about replacing the methods of the class, but in Crystal you can also add through monkey-patching instance (or class) variables.
 
 Let's make one thing clear: monkey patching is frown upon, and for a good reason: changing the way a class work for an entire program might come with unexpected consequences. This post is not encouraging its use. In fact, there's some abuse of it in the standard library that I'd like to get rid of at some point... Yet, as the example described here, it is still a very useful tool to help overcome limitations in code that is out of reach.
 
@@ -201,4 +204,4 @@ With this little example, a few milliseconds might not seem much. But in large d
 
 ## Can we do better?
 
-Crystal creator Ary explained in detail [in a series of posts](https://dev.to/asterite/incremental-compilation-for-crystal-part-1-414k) what's the difficulty of making the compilation incremental. 
+Crystal creator Ary explained in detail [in a series of posts](https://dev.to/asterite/incremental-compilation-for-crystal-part-1-414k) what's the difficulty of making the compilation incremental.
